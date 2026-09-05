@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>A Garden for Prachi</title>
     
-    <!-- Importing a cute, elegant font from Google Fonts -->
+    <!-- Importing the elegant font -->
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     
     <style>
@@ -20,7 +20,7 @@
             font-family: 'Dancing Script', cursive;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: none; /* Prevents mobile scrolling when tapping */
+            touch-action: none;
         }
 
         /* The Cute Title */
@@ -29,16 +29,15 @@
             top: 15%;
             width: 100%;
             text-align: center;
-            color: #ffe4e1; /* Misty Rose color */
-            font-size: clamp(3rem, 8vw, 5rem); /* Responsive size */
+            color: #ffe4e1; 
+            font-size: clamp(3rem, 8vw, 5rem);
             z-index: 10;
-            pointer-events: none; /* Allows clicks to pass through to the garden */
+            pointer-events: none;
             text-shadow: 0 0 15px rgba(255, 182, 193, 0.6), 0 0 30px rgba(255, 105, 180, 0.4);
             letter-spacing: 2px;
             animation: breathe 4s ease-in-out infinite alternate;
         }
 
-        /* Gentle breathing animation for the title */
         @keyframes breathe {
             0% { transform: scale(1); opacity: 0.8; }
             100% { transform: scale(1.05); opacity: 1; }
@@ -54,120 +53,161 @@
             font-family: sans-serif;
             font-size: 0.9rem;
             pointer-events: none;
+            z-index: 10;
             transition: opacity 1s ease;
         }
 
-        /* Flower Animation Wrappers */
-        .flower-wrapper {
+        /* SVG layer for drawing the organic stems */
+        #stem-layer {
             position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
-            /* Incredibly soft blooming animation */
-            animation: floatUpAndFade 6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            z-index: 1;
+        }
+
+        .stem {
+            fill: none;
+            stroke-width: 4;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 5px rgba(46, 139, 87, 0.5));
+            /* The transition that creates the slow "growing" effect */
+            transition: stroke-dashoffset 2.5s ease-in-out;
+        }
+
+        /* Container for the blooming flowers */
+        #flower-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
         }
 
         .flower {
+            position: absolute;
             font-size: 4rem;
-            filter: drop-shadow(0 0 15px rgba(255,255,255,0.2));
-            /* Soft rotation during bloom */
-            animation: softRotate 6s ease-in-out forwards;
-        }
-
-        /* Super smooth upward floating and fading keyframes */
-        @keyframes floatUpAndFade {
-            0% {
-                transform: translate(-50%, -50%) scale(0);
-                opacity: 0;
-            }
-            20% {
-                transform: translate(-50%, -60%) scale(1.1);
-                opacity: 1;
-            }
-            100% {
-                transform: translate(-50%, -120%) scale(0.9);
-                opacity: 0;
-            }
-        }
-
-        @keyframes softRotate {
-            0% { transform: rotate(-20deg); }
-            100% { transform: rotate(20deg); }
+            /* Flowers start at scale 0 (invisible) and grow */
+            transform: translate(-50%, -50%) scale(0);
+            /* Very soft, slightly bouncy blooming animation */
+            transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
     </style>
 </head>
 <body>
 
-    <!-- ADD YOUR BACKGROUND MUSIC HERE -->
-    <!-- Replace 'your-music-file.mp3' with the actual name of your audio file -->
+    <!-- Using the selected .m4a format -->
     <audio id="bg-music" loop>
         <source src="your-music-file.m4a" type="audio/mp4">
     </audio>
 
     <div id="title">A garden for Prachi</div>
-    <div id="prompt">Tap anywhere to bloom</div>
+    <div id="prompt">Tap anywhere to plant a flower</div>
     
-    <!-- This is where the magic happens -->
-    <div id="garden"></div>
+    <!-- Layers for stems and flowers -->
+    <svg id="stem-layer"></svg>
+    <div id="flower-layer"></div>
 
     <script>
-        const garden = document.getElementById('garden');
+        const stemLayer = document.getElementById('stem-layer');
+        const flowerLayer = document.getElementById('flower-layer');
         const music = document.getElementById('bg-music');
         const prompt = document.getElementById('prompt');
         let musicStarted = false;
 
-        function bloomFlower(x, y) {
-            // Start the music on the first touch (browsers require a user gesture to play audio)
+        // Array of different natural greens for the stems
+        const stemColors = ['#2e8b57', '#3cb371', '#228b22', '#00fa9a', '#556b2f'];
+
+        function plantFlower(x, y) {
+            // Start the music on the first touch
             if (!musicStarted) {
                 music.play().catch(err => console.log("Audio waiting for stronger user interaction."));
                 musicStarted = true;
-                prompt.style.opacity = '0'; // Hide the instruction prompt
+                prompt.style.opacity = '0';
             }
 
-            // Create wrapper
-            const wrapper = document.createElement('div');
-            wrapper.classList.add('flower-wrapper');
-            wrapper.style.left = `${x}px`;
-            wrapper.style.top = `${y}px`;
+            // === 1. GROWING THE STEM ===
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            
+            // Calculate natural curve points
+            const startX = x + (Math.random() * 80 - 40); // Base of stem is slightly offset from click
+            const startY = window.innerHeight + 50;       // Starts slightly below the bottom of the screen
+            
+            // Control points for a Cubic Bezier curve to make it look like a natural 'S' or sway
+            const cp1x = startX + (Math.random() * 200 - 100);
+            const cp1y = startY - (startY - y) * 0.3;
+            
+            const cp2x = x + (Math.random() * 200 - 100);
+            const cp2y = y + (startY - y) * 0.3;
 
-            // Create flower element
-            const flower = document.createElement('div');
-            flower.classList.add('flower');
+            // Draw the path: Move to start, curve to target
+            const d = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x} ${y}`;
+            path.setAttribute('d', d);
+            path.classList.add('stem');
+            
+            // Randomly choose a green color for the stem
+            path.style.stroke = stemColors[Math.floor(Math.random() * stemColors.length)];
+            
+            stemLayer.appendChild(path);
 
-            // Randomly choose between Rose (🌹) and Tulip (🌷)
-            const isRose = Math.random() > 0.5;
-            flower.innerText = isRose ? '🌹' : '🌷';
+            // Animate the line drawing
+            const length = path.getTotalLength();
+            path.style.strokeDasharray = length;
+            path.style.strokeDashoffset = length;
 
-            // If it's a rose, give it a random color shift! 
-            if (isRose) {
-                // hue-rotate changes the red rose to pinks, blues, purples, golds, etc.
-                const randomHue = Math.floor(Math.random() * 360);
-                flower.style.filter = `hue-rotate(${randomHue}deg) drop-shadow(0 0 15px rgba(255,255,255,0.2))`;
-            }
+            // Force a reflow so the browser registers the starting state before animating
+            path.getBoundingClientRect();
+            
+            // Start the growing animation
+            path.style.strokeDashoffset = 0;
 
-            // Randomize size slightly for an organic feel
-            const randomScale = 0.7 + (Math.random() * 0.6); // Sizes between 0.7x and 1.3x
-            flower.style.transform = `scale(${randomScale})`;
 
-            // Append elements
-            wrapper.appendChild(flower);
-            garden.appendChild(wrapper);
-
-            // Clean up the DOM element after the 6-second animation finishes
-            // so the website doesn't crash if she clicks a thousand times!
+            // === 2. BLOOMING THE FLOWER ===
+            // Wait 2.2 seconds for the stem to finish growing, then bloom!
             setTimeout(() => {
-                wrapper.remove();
-            }, 6000);
+                const flower = document.createElement('div');
+                flower.classList.add('flower');
+                flower.style.left = `${x}px`;
+                flower.style.top = `${y}px`;
+
+                // Randomly choose between Rose and Tulip
+                const isRose = Math.random() > 0.5;
+                flower.innerText = isRose ? '🌹' : '🌷';
+
+                // Apply random color shift to roses
+                if (isRose) {
+                    const randomHue = Math.floor(Math.random() * 360);
+                    flower.style.filter = `hue-rotate(${randomHue}deg) drop-shadow(0 0 15px rgba(255,255,255,0.2))`;
+                } else {
+                    flower.style.filter = `drop-shadow(0 0 15px rgba(255,255,255,0.2))`;
+                }
+
+                flowerLayer.appendChild(flower);
+
+                // Randomize flower size (between 0.8x and 1.4x)
+                const randomScale = 0.8 + (Math.random() * 0.6);
+                
+                // Force a reflow, then apply the transform to trigger the CSS transition
+                flower.getBoundingClientRect();
+                flower.style.transform = `translate(-50%, -50%) scale(${randomScale})`;
+
+                // Note: We are no longer removing the flowers! They stay permanently.
+            }, 2200); 
         }
 
-        // Listen for Mouse Clicks (Desktop)
+        // Desktop Clicks
         window.addEventListener('mousedown', (e) => {
-            bloomFlower(e.clientX, e.clientY);
+            plantFlower(e.clientX, e.clientY);
         });
 
-        // Listen for Touch Events (Mobile/Tablets)
+        // Mobile Touches
         window.addEventListener('touchstart', (e) => {
-            // Loop through touches in case of multi-touch
             for (let i = 0; i < e.touches.length; i++) {
-                bloomFlower(e.touches[i].clientX, e.touches[i].clientY);
+                plantFlower(e.touches[i].clientX, e.touches[i].clientY);
             }
         });
     </script>
