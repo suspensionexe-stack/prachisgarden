@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A Garden for Prachi</title>
+    
+    <!-- Importing a cute, elegant font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Base Reset */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #030303; /* Deep soft black */
+            overflow: hidden;
+            font-family: 'Dancing Script', cursive;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none; /* Prevents mobile scrolling when tapping */
+        }
+
+        /* The Cute Title */
+        #title {
+            position: absolute;
+            top: 15%;
+            width: 100%;
+            text-align: center;
+            color: #ffe4e1; /* Misty Rose color */
+            font-size: clamp(3rem, 8vw, 5rem); /* Responsive size */
+            z-index: 10;
+            pointer-events: none; /* Allows clicks to pass through to the garden */
+            text-shadow: 0 0 15px rgba(255, 182, 193, 0.6), 0 0 30px rgba(255, 105, 180, 0.4);
+            letter-spacing: 2px;
+            animation: breathe 4s ease-in-out infinite alternate;
+        }
+
+        /* Gentle breathing animation for the title */
+        @keyframes breathe {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.05); opacity: 1; }
+        }
+
+        /* Instruction prompt */
+        #prompt {
+            position: absolute;
+            bottom: 5%;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            font-family: sans-serif;
+            font-size: 0.9rem;
+            pointer-events: none;
+            transition: opacity 1s ease;
+        }
+
+        /* Flower Animation Wrappers */
+        .flower-wrapper {
+            position: absolute;
+            pointer-events: none;
+            /* Incredibly soft blooming animation */
+            animation: floatUpAndFade 6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        .flower {
+            font-size: 4rem;
+            filter: drop-shadow(0 0 15px rgba(255,255,255,0.2));
+            /* Soft rotation during bloom */
+            animation: softRotate 6s ease-in-out forwards;
+        }
+
+        /* Super smooth upward floating and fading keyframes */
+        @keyframes floatUpAndFade {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            20% {
+                transform: translate(-50%, -60%) scale(1.1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -120%) scale(0.9);
+                opacity: 0;
+            }
+        }
+
+        @keyframes softRotate {
+            0% { transform: rotate(-20deg); }
+            100% { transform: rotate(20deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ADD YOUR BACKGROUND MUSIC HERE -->
+    <!-- Replace 'your-music-file.mp3' with the actual name of your audio file -->
+    <audio id="bg-music" loop>
+        <source src="your-music-file.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="title">A garden for Prachi</div>
+    <div id="prompt">Tap anywhere to bloom</div>
+    
+    <!-- This is where the magic happens -->
+    <div id="garden"></div>
+
+    <script>
+        const garden = document.getElementById('garden');
+        const music = document.getElementById('bg-music');
+        const prompt = document.getElementById('prompt');
+        let musicStarted = false;
+
+        function bloomFlower(x, y) {
+            // Start the music on the first touch (browsers require a user gesture to play audio)
+            if (!musicStarted) {
+                music.play().catch(err => console.log("Audio waiting for stronger user interaction."));
+                musicStarted = true;
+                prompt.style.opacity = '0'; // Hide the instruction prompt
+            }
+
+            // Create wrapper
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('flower-wrapper');
+            wrapper.style.left = `${x}px`;
+            wrapper.style.top = `${y}px`;
+
+            // Create flower element
+            const flower = document.createElement('div');
+            flower.classList.add('flower');
+
+            // Randomly choose between Rose (🌹) and Tulip (🌷)
+            const isRose = Math.random() > 0.5;
+            flower.innerText = isRose ? '🌹' : '🌷';
+
+            // If it's a rose, give it a random color shift! 
+            if (isRose) {
+                // hue-rotate changes the red rose to pinks, blues, purples, golds, etc.
+                const randomHue = Math.floor(Math.random() * 360);
+                flower.style.filter = `hue-rotate(${randomHue}deg) drop-shadow(0 0 15px rgba(255,255,255,0.2))`;
+            }
+
+            // Randomize size slightly for an organic feel
+            const randomScale = 0.7 + (Math.random() * 0.6); // Sizes between 0.7x and 1.3x
+            flower.style.transform = `scale(${randomScale})`;
+
+            // Append elements
+            wrapper.appendChild(flower);
+            garden.appendChild(wrapper);
+
+            // Clean up the DOM element after the 6-second animation finishes
+            // so the website doesn't crash if she clicks a thousand times!
+            setTimeout(() => {
+                wrapper.remove();
+            }, 6000);
+        }
+
+        // Listen for Mouse Clicks (Desktop)
+        window.addEventListener('mousedown', (e) => {
+            bloomFlower(e.clientX, e.clientY);
+        });
+
+        // Listen for Touch Events (Mobile/Tablets)
+        window.addEventListener('touchstart', (e) => {
+            // Loop through touches in case of multi-touch
+            for (let i = 0; i < e.touches.length; i++) {
+                bloomFlower(e.touches[i].clientX, e.touches[i].clientY);
+            }
+        });
+    </script>
+</body>
+</html>
