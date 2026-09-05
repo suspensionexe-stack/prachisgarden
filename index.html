@@ -3,213 +3,266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A Garden for Prachi</title>
+    <title>Garden for Prachi</title>
     
-    <!-- Importing the elegant font -->
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <!-- Importing the cute Dancing Script font and Poppins for the buttons -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     
     <style>
-        /* Base Reset */
         body, html {
             margin: 0;
             padding: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: #030303; /* Deep soft black */
+            width: 100%;
+            height: 100%;
+            background-color: #050505; /* Deep dark background */
             overflow: hidden;
-            font-family: 'Dancing Script', cursive;
+            font-family: 'Poppins', sans-serif;
+            color: #ffffff;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: none;
+            touch-action: none; /* Prevents zooming/scrolling on mobile */
         }
 
-        /* The Cute Title */
-        #title {
+        /* UI Overlay Layer */
+        #ui-container {
             position: absolute;
-            top: 15%;
-            width: 100%;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
-            color: #ffe4e1; 
-            font-size: clamp(3rem, 8vw, 5rem);
             z-index: 10;
-            pointer-events: none;
+            pointer-events: none; /* Lets you click through the text to plant flowers */
+            width: 100%;
+        }
+
+        /* The cute heading */
+        .title {
+            font-family: 'Dancing Script', cursive;
+            font-size: clamp(3.5rem, 8vw, 5.5rem);
+            color: #ffb6c1; /* Soft pink */
+            margin: 0 0 15px 0;
             text-shadow: 0 0 15px rgba(255, 182, 193, 0.6), 0 0 30px rgba(255, 105, 180, 0.4);
             letter-spacing: 2px;
             animation: breathe 4s ease-in-out infinite alternate;
         }
 
         @keyframes breathe {
-            0% { transform: scale(1); opacity: 0.8; }
+            0% { transform: scale(1); opacity: 0.9; }
             100% { transform: scale(1.05); opacity: 1; }
         }
 
-        /* Instruction prompt */
-        #prompt {
-            position: absolute;
-            bottom: 5%;
-            width: 100%;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.4);
-            font-family: sans-serif;
+        /* Clickable Buttons */
+        .controls {
+            pointer-events: auto; 
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
             font-size: 0.9rem;
-            pointer-events: none;
-            z-index: 10;
-            transition: opacity 1s ease;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
         }
 
-        /* SVG layer for drawing the organic stems */
-        #stem-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
+        button:hover {
+            background: rgba(255, 182, 193, 0.1);
+            border-color: #ffb6c1;
+            box-shadow: 0 0 15px rgba(255, 182, 193, 0.3);
+        }
+
+        canvas {
+            display: block;
             width: 100%;
             height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .stem {
-            fill: none;
-            stroke-width: 4;
-            stroke-linecap: round;
-            filter: drop-shadow(0 0 5px rgba(46, 139, 87, 0.5));
-            /* The transition that creates the slow "growing" effect */
-            transition: stroke-dashoffset 2.5s ease-in-out;
-        }
-
-        /* Container for the blooming flowers */
-        #flower-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        .flower {
-            position: absolute;
-            font-size: 4rem;
-            /* Flowers start at scale 0 (invisible) and grow */
-            transform: translate(-50%, -50%) scale(0);
-            /* Very soft, slightly bouncy blooming animation */
-            transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
     </style>
 </head>
 <body>
 
-    <!-- Using the selected .m4a format -->
+    <!-- Background Music (m4a format) -->
     <audio id="bg-music" loop>
         <source src="your-music-file.m4a" type="audio/mp4">
     </audio>
 
-    <div id="title">A garden for Prachi</div>
-    <div id="prompt">Tap anywhere to plant a flower</div>
-    
-    <!-- Layers for stems and flowers -->
-    <svg id="stem-layer"></svg>
-    <div id="flower-layer"></div>
+    <div id="ui-container">
+        <!-- Cute Heading -->
+        <h1 class="title">garden for Prachi</h1>
+        
+        <div class="controls">
+            <button id="clear-btn">✨ Clear Garden</button>
+            <button id="auto-btn">🪄 Auto Bloom</button>
+        </div>
+    </div>
+
+    <!-- The Canvas where flowers grow -->
+    <canvas id="gardenCanvas"></canvas>
 
     <script>
-        const stemLayer = document.getElementById('stem-layer');
-        const flowerLayer = document.getElementById('flower-layer');
+        const canvas = document.getElementById('gardenCanvas');
+        const ctx = canvas.getContext('2d');
+        const clearBtn = document.getElementById('clear-btn');
+        const autoBtn = document.getElementById('auto-btn');
         const music = document.getElementById('bg-music');
-        const prompt = document.getElementById('prompt');
         let musicStarted = false;
 
-        // Array of different natural greens for the stems
-        const stemColors = ['#2e8b57', '#3cb371', '#228b22', '#00fa9a', '#556b2f'];
+        let width, height;
+        let flowers = [];
+        let autoBloomInterval = null;
 
-        function plantFlower(x, y) {
-            // Start the music on the first touch
+        // Beautiful glowing pastel colors for the petals
+        const colors = ['#ffb6c1', '#ff69b4', '#dda0dd', '#e6e6fa', '#f0e68c', '#ff7f50'];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Start background music securely
+        function startMusic() {
             if (!musicStarted) {
-                music.play().catch(err => console.log("Audio waiting for stronger user interaction."));
+                music.play().catch(err => console.log("Audio waiting for user interaction."));
                 musicStarted = true;
-                prompt.style.opacity = '0';
             }
-
-            // === 1. GROWING THE STEM ===
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            
-            // Calculate natural curve points
-            const startX = x + (Math.random() * 80 - 40); // Base of stem is slightly offset from click
-            const startY = window.innerHeight + 50;       // Starts slightly below the bottom of the screen
-            
-            // Control points for a Cubic Bezier curve to make it look like a natural 'S' or sway
-            const cp1x = startX + (Math.random() * 200 - 100);
-            const cp1y = startY - (startY - y) * 0.3;
-            
-            const cp2x = x + (Math.random() * 200 - 100);
-            const cp2y = y + (startY - y) * 0.3;
-
-            // Draw the path: Move to start, curve to target
-            const d = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x} ${y}`;
-            path.setAttribute('d', d);
-            path.classList.add('stem');
-            
-            // Randomly choose a green color for the stem
-            path.style.stroke = stemColors[Math.floor(Math.random() * stemColors.length)];
-            
-            stemLayer.appendChild(path);
-
-            // Animate the line drawing
-            const length = path.getTotalLength();
-            path.style.strokeDasharray = length;
-            path.style.strokeDashoffset = length;
-
-            // Force a reflow so the browser registers the starting state before animating
-            path.getBoundingClientRect();
-            
-            // Start the growing animation
-            path.style.strokeDashoffset = 0;
-
-
-            // === 2. BLOOMING THE FLOWER ===
-            // Wait 2.2 seconds for the stem to finish growing, then bloom!
-            setTimeout(() => {
-                const flower = document.createElement('div');
-                flower.classList.add('flower');
-                flower.style.left = `${x}px`;
-                flower.style.top = `${y}px`;
-
-                // Randomly choose between Rose and Tulip
-                const isRose = Math.random() > 0.5;
-                flower.innerText = isRose ? '🌹' : '🌷';
-
-                // Apply random color shift to roses
-                if (isRose) {
-                    const randomHue = Math.floor(Math.random() * 360);
-                    flower.style.filter = `hue-rotate(${randomHue}deg) drop-shadow(0 0 15px rgba(255,255,255,0.2))`;
-                } else {
-                    flower.style.filter = `drop-shadow(0 0 15px rgba(255,255,255,0.2))`;
-                }
-
-                flowerLayer.appendChild(flower);
-
-                // Randomize flower size (between 0.8x and 1.4x)
-                const randomScale = 0.8 + (Math.random() * 0.6);
-                
-                // Force a reflow, then apply the transform to trigger the CSS transition
-                flower.getBoundingClientRect();
-                flower.style.transform = `translate(-50%, -50%) scale(${randomScale})`;
-
-                // Note: We are no longer removing the flowers! They stay permanently.
-            }, 2200); 
         }
 
-        // Desktop Clicks
-        window.addEventListener('mousedown', (e) => {
-            plantFlower(e.clientX, e.clientY);
+        class Flower {
+            constructor(x, targetY) {
+                this.x = x;
+                this.targetY = targetY;
+                this.y = height; // Starts growing from the bottom of the screen
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.growthRate = Math.random() * 3 + 2;
+                this.maxPetalSize = Math.random() * 12 + 10;
+                this.petalSize = 0;
+                this.isFullyGrown = false;
+                
+                // Slight curve for the stem
+                this.curveOffset = (Math.random() - 0.5) * 50; 
+            }
+
+            update() {
+                if (this.y > this.targetY) {
+                    this.y -= this.growthRate; // Stem growing up
+                } else {
+                    this.isFullyGrown = true;
+                    if (this.petalSize < this.maxPetalSize) {
+                        this.petalSize += 0.4; // Petals blooming
+                    }
+                }
+            }
+
+            draw() {
+                // Draw Stem
+                ctx.beginPath();
+                ctx.moveTo(this.x, height);
+                // Quadratic curve for an organic, natural looking stem
+                ctx.quadraticCurveTo(this.x + this.curveOffset, this.y + (height - this.y) / 2, this.x, this.y);
+                ctx.strokeStyle = '#a9dfbf'; // Soft green
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = '#a9dfbf';
+                ctx.stroke();
+
+                // Draw Petals once stem reaches the top
+                if (this.y <= this.targetY + 10) {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = this.color;
+                    ctx.fillStyle = this.color;
+
+                    const numPetals = 6;
+                    for (let i = 0; i < numPetals; i++) {
+                        const angle = (Math.PI * 2 / numPetals) * i;
+                        ctx.save();
+                        ctx.translate(this.x, this.y);
+                        ctx.rotate(angle);
+                        ctx.beginPath();
+                        ctx.ellipse(0, -this.petalSize, this.petalSize / 2.5, this.petalSize, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+
+                    // Draw Flower Center
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.petalSize / 3.5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fffacd';
+                    ctx.shadowColor = '#fffacd';
+                    ctx.fill();
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height); // Clear screen every frame
+
+            flowers.forEach(flower => {
+                flower.update();
+                flower.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- Event Listeners ---
+
+        // Plant flower on mouse click (Desktop)
+        canvas.addEventListener('mousedown', (e) => {
+            startMusic();
+            flowers.push(new Flower(e.clientX, e.clientY));
         });
 
-        // Mobile Touches
-        window.addEventListener('touchstart', (e) => {
+        // Plant flower on touch (Mobile)
+        canvas.addEventListener('touchstart', (e) => {
+            startMusic();
             for (let i = 0; i < e.touches.length; i++) {
-                plantFlower(e.touches[i].clientX, e.touches[i].clientY);
+                flowers.push(new Flower(e.touches[i].clientX, e.touches[i].clientY));
             }
         });
+
+        // Clear garden button
+        clearBtn.addEventListener('click', () => {
+            startMusic();
+            flowers = [];
+            ctx.clearRect(0, 0, width, height);
+        });
+
+        // Auto bloom toggle button
+        autoBtn.addEventListener('click', () => {
+            startMusic();
+            if (autoBloomInterval) {
+                // Stop Auto Bloom
+                clearInterval(autoBloomInterval);
+                autoBloomInterval = null;
+                autoBtn.innerText = "🪄 Auto Bloom";
+                autoBtn.style.borderColor = "rgba(255, 255, 255, 0.2)";
+                autoBtn.style.color = "white";
+            } else {
+                // Start Auto Bloom
+                autoBtn.innerText = "🛑 Stop Auto";
+                autoBtn.style.borderColor = "#ffb6c1";
+                autoBtn.style.color = "#ffb6c1";
+                
+                // Plant a random flower every 600ms
+                autoBloomInterval = setInterval(() => {
+                    const randomX = Math.random() * width;
+                    const randomY = (height * 0.2) + Math.random() * (height * 0.6); // Keep flowers mostly in the middle
+                    flowers.push(new Flower(randomX, randomY));
+                }, 600);
+            }
+        });
+
+        // Start the animation loop
+        animate();
     </script>
 </body>
 </html>
